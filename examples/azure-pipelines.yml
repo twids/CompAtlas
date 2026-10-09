@@ -1,0 +1,11 @@
+# Add after restore/build. Pin the reviewed CompAtlas distribution in your internal tools feed.
+steps:
+- task: PowerShell@2
+  displayName: CompAtlas advisory dependency report
+  inputs:
+    filePath: 'D:\ApprovedTools\CompAtlas\Invoke-CompAtlasPipeline.ps1'
+    arguments: '-Collector D:\ApprovedTools\CompAtlas\CompAtlas.Collector.exe -RepositoryId "$(CompAtlas.RepositoryId)" -Application "Web" -Checkout "$(Build.SourcesDirectory)"'
+    failOnStderr: false
+  env:
+    COMPATLAS_URL: $(CompAtlas.Url)
+    COMPATLAS_TOKEN: $(CompAtlas.ProjectToken)

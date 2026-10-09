@@ -1,0 +1,28 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = Model.Repository != null ? "Repository" : Model.Project != null ? "Project" : "Portfolio"; }
+<h1>@ViewData["Title"]</h1>
+<p>Explore current default-branch results, or select a retained build or release. Accepted risks remain visible.</p>
+@if (TempData["Message"] is string message) { <p class="notice" role="status">@message</p> }
+<form method="get"><label for="project">Project</label><select id="project" name="Project"><option value="">All accessible projects</option>@foreach(var p in Model.Projects){<option value="@p.Id" selected="@(Model.Project == p.Id)">@p.Name</option>}</select><button type="submit">Filter projects</button></form>
+<div class="metrics" aria-label="Report summary">
+<div class="metric"><strong>@Model.Coverage.Count</strong>Repositories</div>
+<div class="metric"><strong>@Model.Findings.Where(f=>f.Kind == FindingKind.Vulnerability).Select(f=>f.Identity.Split(':').Last()).Distinct().Count()</strong>Unique vulnerabilities</div>
+<div class="metric"><strong>@Model.Findings.Count(f=>f.Kind == FindingKind.Vulnerability)</strong>Affected package occurrences</div>
+<div class="metric"><strong>@Model.Findings.Where(f=>f.Kind == FindingKind.Vulnerability).Select(f=>f.RepositoryId).Distinct().Count()</strong>Affected repositories</div>
+<div class="metric"><strong>@Model.Findings.Count(f=>f.Kind == FindingKind.License)</strong>License-policy issues</div>
+<div class="metric"><strong>@Model.Findings.Count(f=>f.Kind != FindingKind.EvidenceGap && f.AcceptedUntil == null && f.Assessment is not (Assessment.FalsePositive or Assessment.NotAffected or Assessment.Resolved))</strong>Actionable findings</div>
+</div>
+<h2>Coverage and evidence</h2>
+<p class="notice">No analysis is not a clean result. License policies require organizational configuration. A successful import does not prove every dependency was found.</p>
+<div class="table-scroll" role="region" aria-label="Repository coverage" tabindex="0"><table><caption>Repository analysis coverage</caption><thead><tr><th scope="col">Project</th><th scope="col">Repository</th><th scope="col">Status</th><th scope="col">Last collection</th><th scope="col">Last analysis</th><th scope="col">Evidence</th></tr></thead><tbody>
+@foreach(var r in Model.Coverage){<tr><td><a asp-page="/Index" asp-route-project="@r.ProjectId">@r.Project</a></td><td><a asp-page="/Index" asp-route-repository="@r.RepositoryId">@r.Repository</a></td><td class="status">@r.Status</td><td>@(r.CollectedAt?.ToString("u") ?? "Never")</td><td>@(r.AnalyzedAt?.ToString("u") ?? "Never")</td><td>@r.Coverage<br/>@r.Traceability<br/>Signature: @r.SignatureEvidence</td></tr>}
+</tbody></table></div>
+@if(Model.History.Count > 0){<h2>Build and release history</h2><form method="get"><input type="hidden" name="Repository" value="@Model.Repository"/><label for="snapshot">Analysis snapshot</label><select id="snapshot" name="Snapshot"><option value="">Latest successful default-branch analyses</option>@foreach(var s in Model.History){<option value="@s.Id" selected="@(s.Id == Model.Snapshot)">@s.CreatedAt.ToString("u") · @s.Commit[..8] · Build @(s.BuildId ?? "unknown") · Release @(s.ReleaseId ?? "none") · @s.State</option>}</select><button type="submit">Select snapshot</button></form>}
+@if(Model.CanCollect){<form method="post" asp-page-handler="Collect"><input type="hidden" name="repository" value="@Model.Repository"/><button type="submit">Request collection</button></form>}
+<h2>Findings</h2>
+<a href="/api/v1/reports/findings.csv?project=@Model.Project&amp;repository=@Model.Repository&amp;snapshot=@Model.Snapshot">Export these findings as CSV</a>
+<div class="table-scroll" role="region" aria-label="Findings" tabindex="0"><table><caption>Active findings, including accepted risks</caption><thead><tr><th scope="col">Repository / application</th><th scope="col">Package</th><th scope="col">Type</th><th scope="col">Severity</th><th scope="col">Finding</th><th scope="col">Assessment</th><th scope="col">Exception</th></tr></thead><tbody>
+@foreach(var f in Model.Findings){<tr><td>@f.Repository / @f.Application</td><td>@f.Ecosystem @f.Package @f.Version</td><td>@f.Kind</td><td>@f.Severity</td><td><a asp-page="/Finding" asp-route-id="@f.FindingId">@f.Title</a></td><td>@f.Assessment</td><td>@(f.AcceptedUntil is {} until ? "Accepted until " + until.ToString("u") : "No active exception")</td></tr>}
+</tbody></table></div>
+@if(Model.Coverage.Count == 0){<p>No projects are available to your current AD group roles, or discovery has not run.</p>}

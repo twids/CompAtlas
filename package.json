@@ -1,0 +1,11 @@
+{
+  "name": "compatlas-browser-validation",
+  "private": true,
+  "scripts": {
+    "test:accessibility": "node scripts/check-accessibility.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "4.14.0",
+    "playwright": "1.64.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "applications": [
+    { "name": "API", "path": "src/Api" },
+    { "name": "SharePoint client", "path": "src/SharePointClient" }
+  ]
+}

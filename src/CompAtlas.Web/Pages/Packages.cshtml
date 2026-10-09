@@ -1,0 +1,14 @@
+@page
+@model PackagesModel
+@{ViewData["Title"]="Package search";}
+<h1>Package search</h1><p>Find package usage across your accessible projects and repositories. Results default to current default-branch inventories.</p>
+<div asp-validation-summary="All" role="alert"></div>
+<form method="get"><input type="hidden" asp-for="Repository"/><input type="hidden" asp-for="Snapshot"/>
+<label asp-for="Ecosystem">Package ecosystem</label><select asp-for="Ecosystem"><option value="">All ecosystems</option><option value="nuget">NuGet</option><option value="npm">npm</option><option value="pypi">PyPI</option><option value="unknown">Unknown</option></select>
+<label asp-for="Name">Package name contains</label><input asp-for="Name" maxlength="400"/>
+<label asp-for="Version">Version filter</label><input asp-for="Version" aria-describedby="version-help" maxlength="128"/><p id="version-help">Use =1.2.3 for an exact version, or [1.0.0,2.0.0) for an interval. NuGet/npm use semantic version ordering; Python uses public PEP 440 ordering. Unknown versions cannot match a version filter.</p>
+<button type="submit">Search packages</button><button name="export" value="true" type="submit">Export results as CSV</button></form>
+<p>@Model.Results.Count package occurrences in @Model.Results.Select(r=>r.RepositoryId).Distinct().Count() repositories.</p>
+<div class="table-scroll" role="region" aria-label="Package usage" tabindex="0"><table><caption>Package usage and license evidence</caption><thead><tr><th scope="col">Project</th><th scope="col">Repository / application</th><th scope="col">Package</th><th scope="col">Version</th><th scope="col">Dependency</th><th scope="col">License evidence</th><th scope="col">Last collection</th></tr></thead><tbody>
+@foreach(var r in Model.Results){<tr><td><a asp-page="/Index" asp-route-project="@r.ProjectId">@r.Project</a></td><td><a asp-page="/Index" asp-route-repository="@r.RepositoryId">@r.Repository</a> / @r.Application</td><td>@r.Ecosystem: @r.Package</td><td>@(r.Version ?? "Unknown")</td><td>@(r.Direct == true ? "Direct" : r.Direct == false ? "Transitive" : "Unknown")</td><td>@(string.IsNullOrEmpty(r.License) ? "Requires review — unknown" : r.License + " — declared; policy review applies")</td><td>@r.CollectedAt.ToString("u")<br/>@r.Coverage</td></tr>}
+</tbody></table></div>

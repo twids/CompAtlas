@@ -1,0 +1,43 @@
+name: Validate CompAtlas
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      COMPATLAS_TEST_SQLSERVER: 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;Encrypt=false'
+      COMPATLAS_PREVIEW_OUTPUT: '${{ github.workspace }}/artifacts/preview'
+    steps:
+    - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      with:
+        persist-credentials: false
+    - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+      with:
+        dotnet-version: '10.0.x'
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      with:
+        node-version: '24'
+        cache: npm
+    - name: Start disposable SQL test infrastructure
+      shell: pwsh
+      run: SqlLocalDB start MSSQLLocalDB
+    - run: dotnet restore CompAtlas.sln --locked-mode
+    - run: dotnet build CompAtlas.sln --no-restore -c Release
+    - run: dotnet test CompAtlas.sln --no-build --no-restore -c Release --logger "trx;LogFileName=ci.trx"
+    - run: npm ci --ignore-scripts
+    - run: npx playwright install chromium
+    - run: npm run test:accessibility
+    - run: npm audit --audit-level=low
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      if: always()
+      with:
+        name: validation-evidence
+        path: |
+          tests/CompAtlas.Tests/TestResults/*.trx
+          artifacts/preview/*.png
+          artifacts/preview/accessibility-results.json
+        retention-days: 14

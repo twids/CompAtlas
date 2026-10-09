@@ -1,0 +1,9 @@
+@page
+@model OperationsModel
+@{ViewData["Title"]="Operations";}
+<h1>Operations</h1><p>Collector jobs require a project-scoped identity and an externally isolated execution environment. Pending jobs are not successful collections.</p>
+<h2>Intelligence sources</h2><p class="notice">A findings refresh does not verify the freshness of every upstream advisory feed. Sources older than 36 hours require attention.</p>
+<ul>@foreach(var s in Model.Sources){<li><strong>@s.Name</strong>: @(s.LastSuccess?.ToString("u") ?? "Never synchronized") · @s.RecordCount records · @(s.LastSuccess == null || s.LastSuccess < DateTimeOffset.UtcNow.AddHours(-36) ? "Unknown or stale" : "Recently synchronized") · @s.LastError</li>}</ul>
+@if(Model.Sources.Count == 0){<p>No intelligence synchronization evidence is available.</p>}
+@foreach(var c in Model.Connections){<p>@c.Name · API @c.ApiVersion · Last discovery: @(c.LastDiscovery?.ToString("u") ?? "Never") · @c.LastError</p>}
+<h2>Recent jobs</h2><div class="table-scroll" role="region" aria-label="Background jobs" tabindex="0"><table><caption>Latest 200 accessible jobs</caption><thead><tr><th scope="col">Created</th><th scope="col">Job</th><th scope="col">Status</th><th scope="col">Attempts</th><th scope="col">Lease expiry</th><th scope="col">Issue</th></tr></thead><tbody>@foreach(var j in Model.Jobs){<tr><td>@j.CreatedAt.ToString("u")</td><td>@j.Kind</td><td>@j.State</td><td>@j.Attempts / 3</td><td>@j.LeaseUntil?.ToString("u")</td><td>@j.LastError</td></tr>}</tbody></table></div>
