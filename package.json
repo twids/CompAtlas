@@ -5,7 +5,7 @@
     "test:accessibility": "node scripts/check-accessibility.mjs"
   },
   "devDependencies": {
-    "axe-core": "4.14.0",
+    "axe-core": "4.14.1",
     "playwright": "1.64.0"
   }
 }
